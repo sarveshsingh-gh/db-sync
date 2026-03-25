@@ -5,7 +5,7 @@ using Spectre.Console;
 
 namespace Database.Services;
 
-public static class DacpacService
+public static class DacService
 {
     public static void SnapshotDatabase(string connectionString, string dacpacOutputPath)
     {

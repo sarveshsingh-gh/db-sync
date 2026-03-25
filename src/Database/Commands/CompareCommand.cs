@@ -19,18 +19,18 @@ public static class CompareCommand
         AnsiConsole.MarkupLine($"[grey]Source: {cfg.MaskConn(cfg.SourceDb)}[/]");
 
         var sourceDacpac = Path.Combine(Path.GetTempPath(), $"source_{DateTime.UtcNow:yyyyMMddHHmmss}.dacpac");
-        DacpacService.SnapshotDatabase(cfg.SourceDb, sourceDacpac);
+        DacService.SnapshotDatabase(cfg.SourceDb, sourceDacpac);
 
         AnsiConsole.MarkupLine("[bold]Step 2/3 — Generating UP and DOWN scripts...[/]");
 
         // UP   : bring destination (prod) up to source (UAT) schema
         // DOWN : bring destination back to baseline if rollback needed
-        var upScript   = DacpacService.GenerateMigrationUpScript(sourceDacpac, cfg.DestinationDb);
-        var downScript = DacpacService.GenerateMigrationDownScript(cfg.BaselinePath, cfg.SourceDb);
+        var upScript   = DacService.GenerateMigrationUpScript(sourceDacpac, cfg.DestinationDb);
+        var downScript = DacService.GenerateMigrationDownScript(cfg.BaselinePath, cfg.SourceDb);
 
         File.Delete(sourceDacpac);
 
-        if (!DacpacService.ScriptHasChanges(upScript))
+        if (!DacService.ScriptHasChanges(upScript))
         {
             AnsiConsole.MarkupLine("[green]✓ No differences found. Destination is already in sync with source.[/]");
             return;

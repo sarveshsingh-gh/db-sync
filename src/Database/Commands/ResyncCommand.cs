@@ -11,15 +11,15 @@ public static class ResyncCommand
         AnsiConsole.MarkupLine($"[grey]Destination: {cfg.MaskConn(cfg.DestinationDb)}[/]");
 
         AnsiConsole.MarkupLine("[bold]Step 1/2 — Extracting schema...[/]");
-        DacpacService.SnapshotDatabase(cfg.DestinationDb, cfg.BaselinePath);
+        DacService.SnapshotDatabase(cfg.DestinationDb, cfg.BaselinePath);
 
         AnsiConsole.MarkupLine("[bold]Step 2/2 — Writing schema files...[/]");
 
         var totalFiles = 0;
 
-        foreach (var (folder, schema) in DacpacService.SchemaObjectTypes)
+        foreach (var (folder, schema) in DacService.SchemaObjectTypes)
         {
-            var scripts = DacpacService.ExtractSchemaScripts(cfg.BaselinePath, schema);
+            var scripts = DacService.ExtractSchemaScripts(cfg.BaselinePath, schema);
             var dir     = Path.Combine(cfg.SchemaPath, folder);
 
             Directory.CreateDirectory(dir);
