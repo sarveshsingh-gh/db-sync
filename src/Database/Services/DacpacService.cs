@@ -17,26 +17,34 @@ public static class DacpacService
         dacServices.Extract(dacpacOutputPath, GetDatabaseName(connectionString), "Database", new Version(1, 0));
     }
 
-    public static Dictionary<string, string> ExtractTableScripts(string dacpacPath)
+    public static readonly IReadOnlyList<(string Folder, ModelTypeClass Schema)> SchemaObjectTypes =
+    [
+        ("tables",     ModelSchema.Table),
+        // ("procedures", ModelSchema.Procedure),
+        // ("views",      ModelSchema.View),
+        // ("functions",  ModelSchema.ScalarFunction),
+        // ("functions",  ModelSchema.TableValuedFunction),
+        // ("triggers",   ModelSchema.DmlTrigger),
+        // ("synonyms",   ModelSchema.Synonym),
+    ];
+
+    public static Dictionary<string, string> ExtractSchemaScripts(string dacpacPath, ModelTypeClass schema)
     {
-        var tableScripts = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var scripts = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         using var model = TSqlModel.LoadFromDacpac(dacpacPath, new ModelLoadOptions
         {
             LoadAsScriptBackedModel = false,
         });
 
-        foreach (var table in model.GetObjects(DacQueryScopes.UserDefined, ModelSchema.Table))
+        foreach (var obj in model.GetObjects(DacQueryScopes.UserDefined, schema))
         {
-            var fullName = table.Name.ToString();
-            var fileName = fullName.Replace("[", "").Replace("]", "").Replace(".", "_");
-
-            table.TryGetScript(out var createScript);
-
-            tableScripts[fileName] = createScript ?? string.Empty;
+            var fileName = obj.Name.ToString().Replace("[", "").Replace("]", "").Replace(".", "_");
+            obj.TryGetScript(out var script);
+            scripts[fileName] = script ?? string.Empty;
         }
 
-        return tableScripts;
+        return scripts;
     }
 
     public static string GenerateMigrationUpScript(string sourceDacpac, string destinationConnectionString)

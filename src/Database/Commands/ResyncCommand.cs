@@ -13,20 +13,30 @@ public static class ResyncCommand
         AnsiConsole.MarkupLine("[bold]Step 1/2 — Extracting schema...[/]");
         DacpacService.SnapshotDatabase(cfg.DestinationDb, cfg.BaselinePath);
 
-        AnsiConsole.MarkupLine("[bold]Step 2/2 — Writing table schema files...[/]");
-        var tables = DacpacService.ExtractTableScripts(cfg.BaselinePath);
+        AnsiConsole.MarkupLine("[bold]Step 2/2 — Writing schema files...[/]");
 
-        Directory.CreateDirectory(cfg.SchemaPath);
+        var totalFiles = 0;
 
-        foreach (var existing in Directory.GetFiles(cfg.SchemaPath, "*.sql"))
-            File.Delete(existing);
+        foreach (var (folder, schema) in DacpacService.SchemaObjectTypes)
+        {
+            var scripts = DacpacService.ExtractSchemaScripts(cfg.BaselinePath, schema);
+            var dir     = Path.Combine(cfg.SchemaPath, folder);
 
-        foreach (var (name, sql) in tables)
-            File.WriteAllText(Path.Combine(cfg.SchemaPath, $"{name}.sql"), sql);
+            Directory.CreateDirectory(dir);
+
+            foreach (var existing in Directory.GetFiles(dir, "*.sql"))
+                File.Delete(existing);
+
+            foreach (var (name, sql) in scripts)
+                File.WriteAllText(Path.Combine(dir, $"{name}.sql"), sql);
+
+            totalFiles += scripts.Count;
+            AnsiConsole.MarkupLine($"[grey]  {folder}: {scripts.Count} files[/]");
+        }
 
         AnsiConsole.WriteLine();
         AnsiConsole.MarkupLine($"[green]✓ Baseline saved   → {cfg.BaselinePath}[/]");
-        AnsiConsole.MarkupLine($"[green]✓ Schema files     → {cfg.SchemaPath}/ ({tables.Count} tables)[/]");
-        AnsiConsole.MarkupLine("[grey]Commit db/schema/ to git — git diff will show table changes.[/]");
+        AnsiConsole.MarkupLine($"[green]✓ Schema files     → {cfg.SchemaPath}/ ({totalFiles} total)[/]");
+        AnsiConsole.MarkupLine("[grey]Commit db/schema/ to git — git diff will show changes.[/]");
     }
 }
