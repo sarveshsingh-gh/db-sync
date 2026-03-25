@@ -26,6 +26,9 @@ public static class DacpacService
         // ("functions",  ModelSchema.TableValuedFunction),
         // ("triggers",   ModelSchema.DmlTrigger),
         // ("synonyms",   ModelSchema.Synonym),
+        // ("types",      ModelSchema.UserDefinedDataType),
+        // ("types",      ModelSchema.TableType),
+        // ("types",      ModelSchema.UserDefinedType),
     ];
 
     public static Dictionary<string, string> ExtractSchemaScripts(string dacpacPath, ModelTypeClass schema)
