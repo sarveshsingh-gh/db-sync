@@ -1,6 +1,3 @@
-# Secrets — never commit real connection strings
-secrets.json
-
 # Build outputs
 bin/
 obj/
