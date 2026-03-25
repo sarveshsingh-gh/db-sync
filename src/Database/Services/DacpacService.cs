@@ -77,6 +77,19 @@ public static class DacpacService
         IgnorePermissions       = true,
         IgnoreRoleMembership    = true,
         GenerateSmartDefaults   = true,
+        ExcludeObjectTypes      =
+        [
+            ObjectType.StoredProcedures,
+            ObjectType.Views,
+            ObjectType.ScalarValuedFunctions,
+            ObjectType.TableValuedFunctions,
+            ObjectType.DatabaseTriggers,
+            ObjectType.ServerTriggers,
+            ObjectType.Synonyms,
+            ObjectType.UserDefinedDataTypes,
+            ObjectType.UserDefinedTableTypes,
+            ObjectType.ClrUserDefinedTypes,
+        ],
     };
 
     private static string GetDatabaseName(string connectionString) =>
