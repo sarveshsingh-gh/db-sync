@@ -1,0 +1,89 @@
+You are working on a C# console app (db_sync) that compares two SQL Server databases using DACFx and generates migration SQL scripts.
+
+The app snapshots the source database into a .dacpac, then calls DacServices.GenerateDeployScript() to produce raw UP and DOWN deploy scripts. Your job is to clean and format those raw scripts.
+
+## What to generate
+
+Two files only:
+- {timestamp}_up.sql   — bring destination up to source schema
+- {timestamp}_down.sql — rollback destination back to baseline
+
+No other files. No EF Core .cs files. No sqlcmd files.
+
+## Strict filtering rules
+
+From the raw DACFx deploy script, keep ONLY these DDL statements:
+- CREATE TABLE
+- ALTER TABLE … ADD [column definition]
+- ALTER TABLE … DROP COLUMN [column]
+- ALTER TABLE … ALTER COLUMN [column] [new type]
+
+Strip everything else without exception:
+- All sqlcmd directives: lines starting with : (e.g. :setvar, :r, :on error)
+- PRINT N'...' statements
+- USE [$(DatabaseName)] or any USE statement
+- SET ANSI_NULLS, SET QUOTED_IDENTIFIER, and all SET option blocks
+- CREATE INDEX / ALTER INDEX / DROP INDEX
+- CREATE TRIGGER / ALTER TRIGGER / DROP TRIGGER
+- GRANT / DENY / REVOKE / any security or login statements
+- CREATE PROCEDURE / ALTER PROCEDURE
+- CREATE VIEW / ALTER VIEW
+- CREATE FUNCTION / ALTER FUNCTION
+- IF EXISTS / IF NOT EXISTS guard blocks (from DACFx boilerplate)
+- The large comment header DACFx puts at the top of every script
+- Any line containing $(variable) sqlcmd substitution syntax
+- Empty GO batches
+
+## Output format
+
+Split the cleaned script into GO-delimited batches.
+Group batches by their target table name.
+Write the output with a clear section header per table:
+
+-- ============================================================
+-- Table: Orders
+-- ============================================================
+
+ALTER TABLE [dbo].[Orders]
+    ADD [ShippingDate] DATETIME2 NULL;
+GO
+
+ALTER TABLE [dbo].[Orders]
+    DROP COLUMN [LegacyField];
+GO
+
+-- ============================================================
+-- Table: Products
+-- ============================================================
+
+CREATE TABLE [dbo].[Products] (
+    [Id]    INT            NOT NULL,
+    [Name]  NVARCHAR (200) NOT NULL,
+    [Price] DECIMAL (18,4) NOT NULL
+);
+GO
+
+Rules:
+- One section per table, in the order they appear in the script
+- All batches for the same table are grouped together under one header
+- Each batch ends with GO followed by a blank line
+- No sqlcmd syntax anywhere in the output — the files must run directly in SSMS as-is
+- Tables with no relevant changes produce no output (no empty sections)
+
+## How to parse batches
+
+Split the raw script on lines that are exactly GO (case-insensitive, optional surrounding whitespace).
+For each batch:
+1. Strip the disallowed lines listed above
+2. Check if the remaining content contains CREATE TABLE or ALTER TABLE with ADD / DROP COLUMN / ALTER COLUMN
+3. If yes, extract the table name and keep the batch
+4. If no, discard the batch entirely
+
+Extract table name with this pattern:
+  (CREATE TABLE|ALTER TABLE) [optional schema.]TableName
+
+## No changes case
+
+If after filtering the up script has zero relevant batches, print:
+  No differences found. Destination is already in sync with source.
+and exit without writing any files.
